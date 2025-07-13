@@ -17,6 +17,9 @@ jobs:
         with:
           ref: main
 
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
       - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
@@ -38,6 +41,9 @@ jobs:
 
       - name: Checkout tiktok-only branch
         run: git fetch origin tiktok-only && git checkout tiktok-only
+
+      - name: Make gradlew executable (again for new branch)
+        run: chmod +x ./gradlew
 
       - name: Build tiktok-only APK
         env:
