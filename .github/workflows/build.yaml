@@ -1,60 +1,62 @@
-name: Build and Sign APK
+name: Build Both APKs and Upload to One Release
 
 on:
-  push:
-    branches:
-      - main
-      - tiktok-only
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag'
+        required: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout main branch
         uses: actions/checkout@v4
+        with:
+          ref: main
 
-      - name: Set up JDK 17
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Decode keystore secret
+      - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
 
-      - name: Clean intermediate build junk (R8 fix)
-        run: rm -rf app/build/intermediates
-
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
-      - name: Build release APK
+      - name: Build main APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          GITHUB_REF_NAME: ${{ github.ref_name }}
         run: ./gradlew clean assembleRelease
+
+      - name: Rename main APK
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/spoof-global.apk
+
+      - name: Checkout tiktok-only branch
+        run: git fetch origin tiktok-only && git checkout tiktok-only
+
+      - name: Build tiktok-only APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew clean assembleRelease
+
+      - name: Rename tiktok-only APK
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/spoof-ttonly.apk
 
       - name: Create GitHub Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}-${{ github.run_number }}
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+          tag_name: ${{ github.event.inputs.tag }}
+          name: Release ${{ github.event.inputs.tag }}
+          files: |
+            app/build/outputs/apk/release/spoof-global.apk
+            app/build/outputs/apk/release/spoof-ttonly.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload APK to Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: app/build/outputs/apk/release/${{ github.ref_name == 'main' && 'spoof-global.apk' || github.ref_name == 'tiktok-only' && 'spoof-ttonly.apk' || 'spoof.apk' }}
-          asset_name: ${{ github.ref_name == 'main' && 'spoof-global.apk' || github.ref_name == 'tiktok-only' && 'spoof-ttonly.apk' || 'spoof.apk' }}
-          asset_content_type: application/vnd.android.package-archive
