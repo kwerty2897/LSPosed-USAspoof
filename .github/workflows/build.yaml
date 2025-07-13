@@ -32,6 +32,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
         run: ./gradlew clean assembleRelease
 
       - name: Create GitHub Release
@@ -47,8 +48,10 @@ jobs:
 
       - name: Upload APK to Release
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: app/build/outputs/apk/release/app-release-unsigned.apk
+          asset_path: app/build/outputs/apk/release/${{ github.ref_name == 'main' && 'spoof-global.apk' || github.ref_name == 'tiktok-only' && 'spoof-ttonly.apk' || 'spoof.apk' }}
           asset_name: ${{ github.ref_name == 'main' && 'spoof-global.apk' || github.ref_name == 'tiktok-only' && 'spoof-ttonly.apk' || 'spoof.apk' }}
           asset_content_type: application/vnd.android.package-archive
