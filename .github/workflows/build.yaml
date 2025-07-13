@@ -1,68 +1,61 @@
-name: Build Both APKs and Upload to One Release
+name: Build and Sign APK
 
 on:
+  push:
+    branches:
+      - main
+      - tiktok-only
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Release tag'
-        required: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout main branch
+      - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          ref: main
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
-      - name: Setup JDK 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Decode keystore
+      - name: Decode keystore secret
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
 
-      - name: Build main APK
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew clean assembleRelease
-
-      - name: Rename main APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/spoof-global.apk
-
-      - name: Checkout tiktok-only branch
-        run: git fetch origin tiktok-only && git checkout tiktok-only
-
-      - name: Make gradlew executable (again for new branch)
+      - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build tiktok-only APK
+      - name: Build release APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
         run: ./gradlew clean assembleRelease
 
-      - name: Rename tiktok-only APK
-        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/spoof-ttonly.apk
+      - name: Get APK name by branch
+        id: apkname
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            echo "APK_NAME=spoof-global.apk" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_REF_NAME}" == "tiktok-only" ]]; then
+            echo "APK_NAME=spoof-ttonly.apk" >> "$GITHUB_OUTPUT"
+          else
+            echo "APK_NAME=spoof.apk" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rename APK
+        run: |
+          mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/${{ steps.apkname.outputs.APK_NAME }}
 
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.event.inputs.tag }}
-          name: Release ${{ github.event.inputs.tag }}
-          files: |
-            app/build/outputs/apk/release/spoof-global.apk
-            app/build/outputs/apk/release/spoof-ttonly.apk
+          tag_name: ${{ github.ref_name }}-${{ github.run_number }}
+          name: Release for ${{ github.ref_name }}
+          files: app/build/outputs/apk/release/${{ steps.apkname.outputs.APK_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
