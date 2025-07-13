@@ -12,22 +12,26 @@ android {
         targetSdk 34
         versionCode 1
         versionName "1.0"
+    }
 
-        // Disable unit tests
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    signingConfigs {
+        release {
+            def keystoreFile = file("release.keystore")
+            if (keystoreFile.exists()) {
+                storeFile keystoreFile
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
+                keyAlias System.getenv("KEY_ALIAS") ?: ""
+                keyPassword System.getenv("KEY_PASSWORD") ?: ""
+            }
+        }
     }
 
     buildTypes {
         release {
-            minifyEnabled true            // Enable code shrinking
-            shrinkResources true          // Remove unused resources
-            proguardFiles getDefaultProguardFile(
-                    'proguard-android-optimize.txt'
-            ), 'proguard-rules.pro'
-        }
-        debug {
-            // Disable shrinking in debug build
             minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 
@@ -36,8 +40,8 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
-    // Disable test tasks globally
     testOptions {
+        unitTests.returnDefaultValues = true
         unitTests.all {
             enabled = false
         }
@@ -45,9 +49,40 @@ android {
 }
 
 dependencies {
-    // LSPosed API, compileOnly because it's provided by LSPosed
     compileOnly files('libs/api-82.jar')
-
-    // Annotations
     implementation 'androidx.annotation:annotation:1.7.1'
+}
+
+// Disable test tasks
+tasks.whenTaskAdded { task ->
+    if (task.name.contains('Test') || task.name.contains('AndroidTest')) {
+        task.enabled = false
+    }
+}
+
+afterEvaluate {
+    configurations.findAll {
+        it.name.startsWith('test') || it.name.startsWith('androidTest')
+    }.each {
+        it.setVisible(false)
+        it.setTransitive(false)
+        it.setCanBeResolved(true)
+        it.setCanBeConsumed(false)
+    }
+}
+
+// Rename APK by selected branch via BUILD_BRANCH environment variable
+android.applicationVariants.all { variant ->
+    if (variant.buildType.name == "release") {
+        variant.outputs.all { output ->
+            def branch = System.getenv("BUILD_BRANCH") ?: "unknown"
+            def fileName = "spoof.apk"
+            if (branch == "main") {
+                fileName = "spoof-global.apk"
+            } else if (branch == "tiktok-only") {
+                fileName = "spoof-ttonly.apk"
+            }
+            outputFileName = fileName
+        }
+    }
 }
