@@ -28,8 +28,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources false // <-- R8
+            minifyEnabled false         // R8 disabled
+            shrinkResources false       // Shrinking disabled
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
         }
@@ -49,7 +49,7 @@ android {
 }
 
 dependencies {
-    compileOnly files('libs/api-82.jar')
+    compileOnly files('libs/api-82.jar') // Xposed API only for compile
     implementation 'androidx.annotation:annotation:1.7.1'
 }
 
@@ -71,7 +71,7 @@ afterEvaluate {
     }
 }
 
-// Rename APK file by branch
+// Rename APK by branch name
 android.applicationVariants.all { variant ->
     if (variant.buildType.name == "release") {
         variant.outputs.all { output ->
