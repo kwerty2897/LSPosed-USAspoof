@@ -1,0 +1,4 @@
+<!-- app/src/main/res/values/styles.xml -->
+<resources>
+    <style name="AppTheme" parent="android:Theme.DeviceDefault" />
+</resources>

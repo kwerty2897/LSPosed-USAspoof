@@ -1,0 +1,53 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.ussimspoofer'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.ussimspoofer"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        // Disable unit tests
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true            // Enable code shrinking
+            shrinkResources true          // Remove unused resources
+            proguardFiles getDefaultProguardFile(
+                    'proguard-android-optimize.txt'
+            ), 'proguard-rules.pro'
+        }
+        debug {
+            // Disable shrinking in debug build
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    // Disable test tasks globally
+    testOptions {
+        unitTests.all {
+            enabled = false
+        }
+    }
+}
+
+dependencies {
+    // LSPosed API, compileOnly because it's provided by LSPosed
+    compileOnly files('libs/api-82.jar')
+
+    // Annotations
+    implementation 'androidx.annotation:annotation:1.7.1'
+}
