@@ -1,19 +1,25 @@
 name: Build and Sign APK
 
 on:
-  push:
-    branches:
-      - main
-      - tiktok-only
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build'
+        required: true
+        default: 'main'
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout chosen branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -24,38 +30,25 @@ jobs:
       - name: Decode keystore secret
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
       - name: Build release APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          GITHUB_REF_NAME: ${{ github.ref_name }}
+          BUILD_BRANCH: ${{ github.event.inputs.branch }}
         run: ./gradlew clean assembleRelease
 
-      - name: Get APK name by branch
-        id: apkname
-        run: |
-          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
-            echo "APK_NAME=spoof-global.apk" >> "$GITHUB_OUTPUT"
-          elif [[ "${GITHUB_REF_NAME}" == "tiktok-only" ]]; then
-            echo "APK_NAME=spoof-ttonly.apk" >> "$GITHUB_OUTPUT"
-          else
-            echo "APK_NAME=spoof.apk" >> "$GITHUB_OUTPUT"
-          fi
+      - name: List APK folder contents
+        run: ls -la app/build/outputs/apk/release/
 
-      - name: Rename APK
-        run: |
-          mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/${{ steps.apkname.outputs.APK_NAME }}
-
-      - name: Create GitHub Release
-        id: create_release
+      - name: Upload APK to Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}-${{ github.run_number }}
-          name: Release for ${{ github.ref_name }}
-          files: app/build/outputs/apk/release/${{ steps.apkname.outputs.APK_NAME }}
+          tag_name: ${{ github.event.inputs.branch }}-${{ github.run_number }}
+          name: Release for ${{ github.event.inputs.branch }}
+          files: |
+            app/build/outputs/apk/release/spoof-global.apk
+            app/build/outputs/apk/release/spoof-ttonly.apk
+            app/build/outputs/apk/release/spoof.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

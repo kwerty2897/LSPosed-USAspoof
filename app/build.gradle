@@ -28,8 +28,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false         // R8 disabled
-            shrinkResources false       // Shrinking disabled
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
         }
@@ -49,7 +49,7 @@ android {
 }
 
 dependencies {
-    compileOnly files('libs/api-82.jar') // Xposed API only for compile
+    compileOnly files('libs/api-82.jar')
     implementation 'androidx.annotation:annotation:1.7.1'
 }
 
@@ -71,11 +71,11 @@ afterEvaluate {
     }
 }
 
-// Rename APK by branch name
+// Rename APK by selected branch via BUILD_BRANCH environment variable
 android.applicationVariants.all { variant ->
     if (variant.buildType.name == "release") {
         variant.outputs.all { output ->
-            def branch = System.getenv("GITHUB_REF_NAME") ?: "unknown"
+            def branch = System.getenv("BUILD_BRANCH") ?: "unknown"
             def fileName = "spoof.apk"
             if (branch == "main") {
                 fileName = "spoof-global.apk"
