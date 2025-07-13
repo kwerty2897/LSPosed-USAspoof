@@ -49,6 +49,6 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: app/build/outputs/apk/release/app-release.apk
+          asset_path: app/build/outputs/apk/release/app-release-unsigned.apk
           asset_name: ${{ github.ref_name == 'main' && 'spoof-global.apk' || github.ref_name == 'tiktok-only' && 'spoof-ttonly.apk' || 'spoof.apk' }}
           asset_content_type: application/vnd.android.package-archive
