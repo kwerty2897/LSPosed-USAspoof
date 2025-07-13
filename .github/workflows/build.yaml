@@ -33,16 +33,21 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew clean assembleRelease
 
-      - name: Upload APK for main branch
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
         with:
-          name: spoof-global.apk
-          path: app/build/outputs/apk/release/app-release.apk
+          tag_name: ${{ github.ref_name }}-${{ github.run_number }}
+          release_name: Release ${{ github.ref_name }} #${{ github.run_number }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload APK for tiktok-only branch
-        if: github.ref == 'refs/heads/tiktok-only'
-        uses: actions/upload-artifact@v4
+      - name: Upload APK to Release
+        uses: actions/upload-release-asset@v1
         with:
-          name: spoof-ttonly.apk
-          path: app/build/outputs/apk/release/app-release.apk
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/build/outputs/apk/release/app-release.apk
+          asset_name: ${{ github.ref_name == 'main' && 'spoof-global.apk' || github.ref_name == 'tiktok-only' && 'spoof-ttonly.apk' || 'spoof.apk' }}
+          asset_content_type: application/vnd.android.package-archive
