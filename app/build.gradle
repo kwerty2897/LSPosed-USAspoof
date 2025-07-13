@@ -29,7 +29,7 @@ android {
     buildTypes {
         release {
             minifyEnabled true
-            shrinkResources true
+            shrinkResources false // <-- R8
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
         }
@@ -71,7 +71,7 @@ afterEvaluate {
     }
 }
 
-// Rename release APK by branch
+// Rename APK file by branch
 android.applicationVariants.all { variant ->
     if (variant.buildType.name == "release") {
         variant.outputs.all { output ->

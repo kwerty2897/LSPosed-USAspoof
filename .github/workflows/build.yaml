@@ -24,6 +24,9 @@ jobs:
       - name: Decode keystore secret
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
 
+      - name: Clean intermediate build junk (R8 fix)
+        run: rm -rf app/build/intermediates
+
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
@@ -40,7 +43,7 @@ jobs:
         uses: actions/create-release@v1
         with:
           tag_name: ${{ github.ref_name }}-${{ github.run_number }}
-          release_name: Release ${{ github.ref_name }} #${{ github.run_number }}
+          release_name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
         env:
