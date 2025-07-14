@@ -15,7 +15,7 @@
 
 ## ⚙️ Requirements
 
-* Rootless ([LSPatch](https://github.com/LSPosed/LSPatch)) or Rooted Android device
+* Rootless ([LSPatch](https://github.com/JingMatrix/LSPatch)) or Rooted Android device
 * Xposed framework (LSPosed or EdXposed)
 * Android 5.0+ (API level 21 or higher)
 
